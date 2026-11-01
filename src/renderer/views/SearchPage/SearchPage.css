@@ -29,3 +29,97 @@
     inline-size: 90%;
   }
 }
+
+.searchToolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-block: 8px 16px;
+}
+
+.searchToolbar :deep(.btn),
+.searchStatusContent :deep(.btn) {
+  margin: 0;
+}
+
+.searchStatus {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-inline-size: 680px;
+  margin: 24px auto;
+  padding: 20px 24px;
+  border: 1px solid var(--side-nav-hover-color);
+  border-inline-start: 4px solid var(--primary-color);
+  border-radius: 8px;
+  background: var(--search-bar-color);
+  color: var(--text-color);
+}
+
+.searchStatus p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.searchStatusError {
+  border-inline-start-color: var(--error-color);
+}
+
+.searchStatusEmpty {
+  justify-content: center;
+  min-block-size: 72px;
+  text-align: center;
+}
+
+.searchStatusLoading {
+  justify-content: center;
+  padding-block: 12px;
+  border: 0;
+  background: transparent;
+}
+
+.searchStatusIcon {
+  flex: 0 0 auto;
+  color: var(--primary-color);
+  font-size: 1.25rem;
+}
+
+.searchStatusError .searchStatusIcon {
+  color: var(--error-color);
+}
+
+.searchStatusContent {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.loadingSpinner {
+  animation: searchSpinner 1s linear infinite;
+}
+
+@keyframes searchSpinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loadingSpinner {
+    animation-duration: 2s;
+  }
+}
+
+@media only screen and (width <= 680px) {
+  .searchStatus {
+    align-items: flex-start;
+    margin-block: 16px;
+    padding: 16px;
+  }
+
+  .searchStatusContent {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
