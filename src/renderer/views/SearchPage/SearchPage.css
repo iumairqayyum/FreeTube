@@ -46,8 +46,10 @@
   align-items: center;
   gap: 16px;
   max-inline-size: 680px;
-  margin: 24px auto;
-  padding: 20px 24px;
+  margin-block: 24px;
+  margin-inline: auto;
+  padding-block: 20px;
+  padding-inline: 24px;
   border: 1px solid var(--side-nav-hover-color);
   border-inline-start: 4px solid var(--primary-color);
   border-radius: 8px;
@@ -96,10 +98,10 @@
 }
 
 .loadingSpinner {
-  animation: searchSpinner 1s linear infinite;
+  animation: search-spinner 1s linear infinite;
 }
 
-@keyframes searchSpinner {
+@keyframes search-spinner {
   to {
     transform: rotate(360deg);
   }
