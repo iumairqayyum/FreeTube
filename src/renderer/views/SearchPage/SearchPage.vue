@@ -15,36 +15,53 @@
         />
         {{ t("Search Filters.Search Results") }}
       </h2>
-      <button
-        type="button"
-        @click="refreshSearch"
-      >
-        {{ t('Search.Refresh results') }}
-      </button>
-      <p
+      <div class="searchToolbar">
+        <FtButton
+          :label="t('Search.Refresh results')"
+          :icon="['fas', 'rotate']"
+          @click="refreshSearch"
+        />
+      </div>
+      <div
         v-if="errorMessage"
+        class="searchStatus searchStatusError"
         role="alert"
       >
-        {{ errorMessage }}
-        <button
-          type="button"
-          @click="retrySearch"
-        >
-          {{ t('Search.Retry') }}
-        </button>
-      </p>
-      <p
-        v-else-if="shownResults.length === 0"
+        <FontAwesomeIcon
+          :icon="['fas', 'triangle-exclamation']"
+          class="searchStatusIcon"
+        />
+        <div class="searchStatusContent">
+          <p>{{ errorMessage }}</p>
+          <FtButton
+            :label="t('Search.Retry')"
+            :icon="['fas', 'rotate-right']"
+            @click="retrySearch"
+          />
+        </div>
+      </div>
+      <div
+        v-else-if="shownResults.length === 0 && !isLoading"
+        class="searchStatus searchStatusEmpty"
         role="status"
       >
-        {{ t('Search.No matching results') }}
-      </p>
-      <p
+        <FontAwesomeIcon
+          :icon="['fas', 'magnifying-glass']"
+          class="searchStatusIcon"
+        />
+        <p>{{ t('Search.No matching results') }}</p>
+      </div>
+      <div
         v-if="isFetchingMore"
+        class="searchStatus searchStatusLoading"
         role="status"
       >
-        {{ t('Search.Loading more') }}
-      </p>
+        <FontAwesomeIcon
+          :icon="['fas', 'spinner']"
+          class="searchStatusIcon loadingSpinner"
+        />
+        <p>{{ t('Search.Loading more') }}</p>
+      </div>
       <FtElementList
         :data="shownResults"
       />
@@ -77,6 +94,7 @@ import FtLoader from '../../components/FtLoader/FtLoader.vue'
 import FtCard from '../../components/ft-card/ft-card.vue'
 import FtElementList from '../../components/FtElementList/FtElementList.vue'
 import FtAutoLoadNextPageWrapper from '../../components/FtAutoLoadNextPageWrapper.vue'
+import FtButton from '../../components/FtButton/FtButton.vue'
 
 import store from '../../store'
 
