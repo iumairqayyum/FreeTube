@@ -72,6 +72,12 @@ Search Listing:
     # Aria labels
     Closed Captions: Closed Captions
   # In Filter Button
+Search:
+  Refresh results: Refresh results
+  Retry: Retry
+  No matching results: No matching results. Try clearing your search filters or refreshing.
+  Loading more: Loading more results…
+  Request failed: Search request failed. Check your connection or backend, then retry.
 Search Filters:
   Search Filters: Search Filters
   Prioritize:
@@ -434,6 +440,8 @@ Settings:
     Secondary Color Theme: Secondary Color Theme
         #* Main Color Theme
   Player Settings:
+    Prefer H264: Prefer H.264 video (Intel Macs)
+    Prefer H264 Tooltip: Prefer H.264 for DASH playback when available. Reopen the video after changing this setting. Available quality may be lower; other codecs remain a fallback.
     Player Settings: Player
     Play Next Video: Autoplay Recommended Videos
     Autoplay Playlists: Autoplay Playlist Videos

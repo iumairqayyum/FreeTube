@@ -176,6 +176,7 @@ const state = {
   defaultSkipInterval: 5,
   defaultViewingMode: 'default',
   defaultVideoFormat: 'dash',
+  preferH264: false,
   disableSmoothScrolling: false,
   disableChannelLinks: false,
   displayVideoPlayButton: false,

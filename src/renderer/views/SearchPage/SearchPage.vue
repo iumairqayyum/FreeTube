@@ -15,10 +15,41 @@
         />
         {{ t("Search Filters.Search Results") }}
       </h2>
+      <button
+        type="button"
+        @click="refreshSearch"
+      >
+        {{ t('Search.Refresh results') }}
+      </button>
+      <p
+        v-if="errorMessage"
+        role="alert"
+      >
+        {{ errorMessage }}
+        <button
+          type="button"
+          @click="retrySearch"
+        >
+          {{ t('Search.Retry') }}
+        </button>
+      </p>
+      <p
+        v-else-if="shownResults.length === 0"
+        role="status"
+      >
+        {{ t('Search.No matching results') }}
+      </p>
+      <p
+        v-if="isFetchingMore"
+        role="status"
+      >
+        {{ t('Search.Loading more') }}
+      </p>
       <FtElementList
         :data="shownResults"
       />
       <FtAutoLoadNextPageWrapper
+        v-if="hasMore && !isFetchingMore && !errorMessage"
         @load-next-page="nextPage"
       >
         <div
@@ -38,7 +69,7 @@
 
 <script setup>
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { computed, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 
@@ -66,6 +97,12 @@ const { t } = useI18n()
 const route = useRoute()
 
 const isLoading = ref(false)
+const isFetchingMore = ref(false)
+const errorMessage = ref('')
+const hasMore = ref(false)
+const fetchedAt = ref(0)
+const SEARCH_CACHE_MAX_AGE = 60_000
+let searchGeneration = 0
 const apiUsed = ref('local')
 const searchSettings = ref({})
 const searchPage = ref(1)
@@ -91,59 +128,26 @@ const showFamilyFriendlyOnly = computed(() => store.getters.getShowFamilyFriendl
 /** @type {import('vue').ComputedRef<boolean>} */
 const rememberSearchHistory = computed(() => store.getters.getRememberSearchHistory)
 
-watch(route, () => {
-  const query_ = route.params.query.trim()
-  let features = route.query.features
-  // if page gets refreshed and there's only one feature then it will be a string
-  if (typeof features === 'string') {
-    features = [features]
+watch(() => [route.params.query, route.query], () => {
+  // Route watchers can also run while navigating away from the search page.
+  if (typeof route.params.query !== 'string') {
+    searchGeneration++
+    return
   }
-  const searchSettings = {
+  query.value = route.params.query.trim()
+  const features = route.query.features
+  const filters = {
     prioritize: route.query.prioritize,
     time: route.query.time,
     type: route.query.type,
     duration: route.query.duration,
-    features: features ?? [],
+    features: typeof features === 'string' ? [features] : features ?? []
   }
-
-  const payload = {
-    query: query_,
-    options: {},
-    searchSettings: searchSettings
-  }
-
-  query.value = query_
-
   store.commit('setAppTitle', processedQuery.value)
-  checkSearchCache(payload)
-}, { deep: true })
+  checkSearchCache({ query: processedQuery.value, searchSettings: filters })
+}, { deep: true, immediate: true })
 
-onMounted(() => {
-  query.value = route.params.query
-  store.commit('setAppTitle', processedQuery.value)
-
-  let features = route.query.features
-  // if page gets refreshed and there's only one feature then it will be a string
-  if (typeof features === 'string') {
-    features = [features]
-  }
-
-  searchSettings.value = {
-    prioritize: route.query.prioritize,
-    time: route.query.time,
-    type: route.query.type,
-    duration: route.query.duration,
-    features: features ?? [],
-  }
-
-  const payload = {
-    query: processedQuery.value,
-    options: {},
-    searchSettings: searchSettings.value
-  }
-
-  checkSearchCache(payload)
-})
+onBeforeUnmount(() => { searchGeneration++ })
 
 function updateSearchHistoryEntry() {
   const persistentSearchHistoryPayload = {
@@ -154,219 +158,186 @@ function updateSearchHistoryEntry() {
   store.dispatch('updateSearchHistoryEntry', persistentSearchHistoryPayload)
 }
 
-function checkSearchCache(payload) {
+function checkSearchCache(payload, forceRefresh = false) {
+  const generation = ++searchGeneration
+  isLoading.value = false
+  isFetchingMore.value = false
+  errorMessage.value = ''
+  nextPageRef.value = null
+  hasMore.value = false
+  searchPage.value = 1
+  shownResults.value = []
+  searchSettings.value = payload.searchSettings
+
   if (payload.query.length > SEARCH_CHAR_LIMIT) {
-    console.warn(`Search character limit is: ${SEARCH_CHAR_LIMIT}`)
-    showToast(t('Search character limit', { searchCharacterLimit: SEARCH_CHAR_LIMIT }))
+    errorMessage.value = t('Search character limit', { searchCharacterLimit: SEARCH_CHAR_LIMIT })
     return
   }
 
-  const sameSearch = sessionSearchHistory.value.filter((search) => {
-    return search.query === payload.query && searchFiltersMatch(payload.searchSettings, search.searchSettings)
-  })
-
-  if (sameSearch.length > 0) {
-    // No loading effect needed here, only rendered result update
-    replaceShownResults(sameSearch[0])
+  const cached = !forceRefresh && sessionSearchHistory.value.find(search =>
+    search.query === payload.query && searchFiltersMatch(payload.searchSettings, search.searchSettings) &&
+    search.backendPreference === backendPreference.value && search.safetyMode === showFamilyFriendlyOnly.value &&
+    Date.now() - search.fetchedAt < SEARCH_CACHE_MAX_AGE
+  )
+  if (cached) {
+    replaceShownResults(cached)
   } else {
-    // Show loading effect coz there will be network request(s)
     isLoading.value = true
-    searchSettings.value = payload.searchSettings
-
-    switch (backendPreference.value) {
-      case 'local':
-        performSearchLocal(payload)
-        break
-      case 'invidious':
-        performSearchInvidious(payload, { resetSearchPage: true })
-        break
+    const request = { ...payload, generation, safetyMode: showFamilyFriendlyOnly.value }
+    if (backendPreference.value === 'invidious') {
+      performSearchInvidious(request)
+    } else {
+      performSearchLocal(request)
     }
   }
+  if (rememberSearchHistory.value) updateSearchHistoryEntry()
+}
 
-  if (rememberSearchHistory.value) {
-    updateSearchHistoryEntry()
+function refreshSearch() {
+  checkSearchCache({ query: processedQuery.value, searchSettings: searchSettings.value }, true)
+}
+
+function retrySearch() {
+  if (shownResults.value.length > 0 && hasMore.value) {
+    nextPage()
+  } else {
+    refreshSearch()
   }
 }
 
+function appendUniqueResults(results) {
+  const seen = new Set()
+  shownResults.value = [...shownResults.value, ...results].filter(item => {
+    const id = item.videoId ?? item.playlistId ?? item.id ?? item.authorId ?? item.url
+    if (!id) return true
+    const key = `${item.type}:${id}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function cacheResults(payload) {
+  store.commit('addToSessionSearchHistory', {
+    query: payload.query,
+    data: shownResults.value,
+    searchSettings: payload.searchSettings,
+    nextPageRef: apiUsed.value === 'local' && nextPageRef.value
+      ? extractLocalCacheableSearchContinuation(nextPageRef.value) : null,
+    searchPage: searchPage.value,
+    hasMore: hasMore.value,
+    apiUsed: apiUsed.value,
+    backendPreference: backendPreference.value,
+    safetyMode: payload.safetyMode,
+    fetchedAt: fetchedAt.value
+  })
+}
+
+function showSearchError(err, backend) {
+  console.error(err)
+  errorMessage.value = t('Search.Request failed')
+  const message = backend === 'local'
+    ? t('Local API Error (Click to copy)')
+    : t('Invidious API Error (Click to copy)')
+  showToast(`${message}: ${err}`, 10000, () => copyToClipboard(String(err)))
+}
+
 async function performSearchLocal(payload) {
-  isLoading.value = true
-
   try {
-    const { results, continuationData } = await getLocalSearchResults(
-      payload.query,
-      payload.searchSettings,
-      showFamilyFriendlyOnly.value
-    )
-
+    const { results, continuationData } = await getLocalSearchResults(payload.query, payload.searchSettings, payload.safetyMode)
+    if (payload.generation !== searchGeneration) return
     apiUsed.value = 'local'
-
-    shownResults.value = results
-    nextPageRef.value = continuationData
-
-    isLoading.value = false
-
-    const historyPayload = {
-      query: payload.query,
-      data: shownResults.value,
-      searchSettings: searchSettings.value,
-      nextPageRef: nextPageRef.value ? extractLocalCacheableSearchContinuation(nextPageRef.value) : null,
-      apiUsed: apiUsed.value
-    }
-
-    store.commit('addToSessionSearchHistory', historyPayload)
-
+    shownResults.value = []
+    appendUniqueResults(results)
+    nextPageRef.value = continuationData ?? null
+    hasMore.value = nextPageRef.value !== null
+    fetchedAt.value = Date.now()
+    cacheResults(payload)
     updateSubscriptionDetails(results)
   } catch (err) {
-    console.error(err)
-
-    const errorMessage = t('Local API Error (Click to copy)')
-    showToast(`${errorMessage}: ${err}`, 10000, () => {
-      copyToClipboard(err)
-    })
-
-    if (backendPreference.value === 'local' && backendFallback.value) {
-      showToast(t('Falling back to Invidious API'))
-      performSearchInvidious(payload)
-    } else {
-      isLoading.value = false
+    if (payload.generation !== searchGeneration) return
+    if (backendFallback.value && !payload.fallbackAttempted) {
+      return await performSearchInvidious({ ...payload, fallbackAttempted: true })
     }
+    showSearchError(err, 'local')
+  } finally {
+    if (payload.generation === searchGeneration) isLoading.value = false
   }
 }
 
 async function getNextpageLocal(payload) {
   try {
-    const { results, continuationData } = await getLocalSearchContinuation(payload.options.nextPageRef)
-
-    if (results.length === 0) {
-      return
-    }
-
-    apiUsed.value = 'local'
-
-    shownResults.value = shownResults.value.concat(results)
-    nextPageRef.value = continuationData
-
-    const historyPayload = {
-      query: payload.query,
-      data: shownResults.value,
-      searchSettings: searchSettings.value,
-      nextPageRef: nextPageRef.value ? extractLocalCacheableSearchContinuation(nextPageRef.value) : null,
-      apiUsed: apiUsed.value
-    }
-
-    store.commit('addToSessionSearchHistory', historyPayload)
-
+    const { results, continuationData } = await getLocalSearchContinuation(payload.nextPageRef)
+    if (payload.generation !== searchGeneration) return
+    // Consume the continuation even when this page contains no usable items.
+    nextPageRef.value = continuationData ?? null
+    hasMore.value = nextPageRef.value !== null
+    appendUniqueResults(results)
+    cacheResults(payload)
     updateSubscriptionDetails(results)
   } catch (err) {
-    console.error(err)
-
-    const errorMessage = t('Local API Error (Click to copy)')
-    showToast(`${errorMessage}: ${err}`, 10000, () => {
-      copyToClipboard(err)
-    })
-
-    if (backendPreference.value === 'local' && backendFallback.value) {
-      showToast(t('Falling back to Invidious API'))
-      performSearchInvidious(payload)
-    } else {
-      isLoading.value = false
-    }
+    if (payload.generation === searchGeneration) showSearchError(err, 'local')
   }
 }
 
-async function performSearchInvidious(payload, options = { resetSearchPage: false }) {
-  if (options.resetSearchPage) {
-    searchPage.value = 1
-  }
-
-  if (searchPage.value === 1) {
-    isLoading.value = true
-  }
-
+async function performSearchInvidious(payload, append = false) {
+  const page = append ? searchPage.value : 1
   try {
-    const results = await getInvidiousSearchResults(payload.query, searchPage.value, payload.searchSettings)
-    if (!results) {
-      return
-    }
-
+    const results = await getInvidiousSearchResults(payload.query, page, payload.searchSettings)
+    if (payload.generation !== searchGeneration) return
+    if (!Array.isArray(results)) throw new Error('Invalid search response')
     apiUsed.value = 'invidious'
-
-    if (searchPage.value !== 1) {
-      shownResults.value = shownResults.value.concat(results)
-    } else {
-      shownResults.value = results
+    nextPageRef.value = null
+    if (!append) {
+      shownResults.value = []
+      fetchedAt.value = Date.now()
     }
-
-    isLoading.value = false
-
-    searchPage.value++
-
-    const historyPayload = {
-      query: payload.query,
-      data: shownResults.value,
-      searchSettings: searchSettings.value,
-      searchPage: searchPage.value,
-      apiUsed: apiUsed.value
-    }
-
-    store.commit('addToSessionSearchHistory', historyPayload)
-
+    appendUniqueResults(results)
+    hasMore.value = results.length > 0
+    searchPage.value = page + 1
+    cacheResults(payload)
     updateSubscriptionDetails(results)
   } catch (err) {
-    console.error(err)
-
-    const errorMessage = t('Invidious API Error (Click to copy)')
-    showToast(`${errorMessage}: ${err}`, 10000, () => {
-      copyToClipboard(err)
-    })
-
-    if (process.env.SUPPORTS_LOCAL_API && backendPreference.value === 'invidious' && backendFallback.value) {
-      showToast(t('Falling back to Local API'))
-      performSearchLocal(payload)
-    } else {
-      isLoading.value = false
-      // TODO: Show toast with error message
+    if (payload.generation !== searchGeneration) return
+    if (!append && process.env.SUPPORTS_LOCAL_API && backendFallback.value && !payload.fallbackAttempted) {
+      return await performSearchLocal({ ...payload, fallbackAttempted: true })
     }
+    showSearchError(err, 'invidious')
+  } finally {
+    if (payload.generation === searchGeneration) isLoading.value = false
   }
 }
 
-function nextPage() {
+async function nextPage() {
+  if (isLoading.value || isFetchingMore.value || !hasMore.value) return
+  isFetchingMore.value = true
+  errorMessage.value = ''
   const payload = {
     query: processedQuery.value,
     searchSettings: searchSettings.value,
-    options: {
-      nextPageRef: nextPageRef.value
-    }
+    nextPageRef: nextPageRef.value,
+    generation: searchGeneration,
+    safetyMode: showFamilyFriendlyOnly.value
   }
-
-  if (apiUsed.value === 'local') {
-    if (nextPageRef.value !== null) {
-      showToast(t('Search Filters["Fetching results. Please wait"]'))
-      getNextpageLocal(payload)
+  try {
+    if (apiUsed.value === 'local') {
+      await getNextpageLocal(payload)
     } else {
-      showToast(t('Search Filters.There are no more results for this search'))
+      await performSearchInvidious(payload, true)
     }
-  } else {
-    showToast(t('Search Filters["Fetching results. Please wait"]'))
-    performSearchInvidious(payload)
+  } finally {
+    if (payload.generation === searchGeneration) isFetchingMore.value = false
   }
 }
 
 function replaceShownResults(history) {
-  query.value = history.query
   shownResults.value = history.data
   searchSettings.value = history.searchSettings
   apiUsed.value = history.apiUsed
-
-  if (history.nextPageRef != null) {
-    nextPageRef.value = history.nextPageRef
-  }
-
-  if (typeof (history.searchPage) !== 'undefined') {
-    searchPage.value = history.searchPage
-  }
-
-  // This is kept in case there is some race condition
+  nextPageRef.value = history.nextPageRef ?? null
+  searchPage.value = history.searchPage ?? 1
+  hasMore.value = history.hasMore ?? (nextPageRef.value !== null)
+  fetchedAt.value = history.fetchedAt
   isLoading.value = false
 }
 

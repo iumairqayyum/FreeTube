@@ -654,14 +654,8 @@ const mutations = {
     })
 
     if (sameSearch !== -1) {
-      state.sessionSearchHistory[sameSearch].data = payload.data
-      if (payload.nextPageRef) {
-        // Local API
-        state.sessionSearchHistory[sameSearch].nextPageRef = payload.nextPageRef
-      } else if (payload.searchPage) {
-        // Invidious API
-        state.sessionSearchHistory[sameSearch].searchPage = payload.searchPage
-      }
+      // Replace the complete snapshot, including null continuation tokens and backend changes.
+      state.sessionSearchHistory[sameSearch] = payload
     } else {
       state.sessionSearchHistory.push(payload)
     }
