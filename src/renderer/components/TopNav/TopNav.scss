@@ -224,3 +224,61 @@
     }
   }
 }
+
+/* Compact navigation keeps the content canvas free of a permanent sidebar. */
+.appMenu {
+  position: relative;
+  line-height: normal;
+}
+
+.appMenu summary {
+  display: flex;
+  list-style: none;
+}
+
+.appMenu summary::-webkit-details-marker {
+  display: none;
+}
+
+.appMenuPanel {
+  position: absolute;
+  inset-block-start: 48px;
+  inset-inline-start: 0;
+  inline-size: 220px;
+  max-block-size: calc(100vh - 120px);
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid var(--side-nav-hover-color);
+  border-radius: 12px;
+  background: var(--card-bg-color);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 40%);
+}
+
+.appMenuPanel a {
+  display: block;
+  padding: 12px;
+  border-radius: 8px;
+  color: var(--primary-text-color);
+  text-decoration: none;
+}
+
+.appMenuPanel a:hover,
+.appMenuPanel a:focus-visible {
+  background: var(--side-nav-hover-color);
+}
+
+.topNav {
+  box-shadow: none;
+  border-block-end: 1px solid var(--side-nav-hover-color);
+}
+
+@media only screen and (width >= 961px) {
+  .topNav {
+    grid-template-columns: auto minmax(320px, 720px) auto;
+    justify-content: space-between;
+  }
+
+  .middle {
+    max-inline-size: 720px;
+  }
+}
