@@ -52,7 +52,7 @@
   border-inline-start: 4px solid var(--primary-color);
   border-radius: 8px;
   background: var(--search-bar-color);
-  color: var(--text-color);
+  color: var(--primary-text-color);
 }
 
 .searchStatus p {
@@ -61,7 +61,7 @@
 }
 
 .searchStatusError {
-  border-inline-start-color: var(--error-color);
+  border-inline-start-color: var(--destructive-color);
 }
 
 .searchStatusEmpty {
@@ -84,7 +84,7 @@
 }
 
 .searchStatusError .searchStatusIcon {
-  color: var(--error-color);
+  color: var(--destructive-color);
 }
 
 .searchStatusContent {
@@ -107,7 +107,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .loadingSpinner {
-    animation-duration: 2s;
+    animation: none;
   }
 }
 
