@@ -4,9 +4,7 @@
     class="app"
     :class="{
       hideOutlines: outlinesHidden,
-      isLocaleRightToLeft: isLocaleRightToLeft,
-      isSideNavOpen: isSideNavOpen,
-      hideLabelsSideBar: hideLabelsSideBar && !isSideNavOpen
+      isLocaleRightToLeft: isLocaleRightToLeft
     }"
   >
     <TopNav
@@ -130,12 +128,6 @@ import { loadLocale } from './i18n/index'
 const route = useRoute()
 const router = useRouter()
 const { locale, t } = useI18n()
-
-/** @type {import('vue').ComputedRef<boolean>} */
-const isSideNavOpen = computed(() => store.getters.getIsSideNavOpen)
-
-/** @type {import('vue').ComputedRef<boolean>} */
-const hideLabelsSideBar = computed(() => store.getters.getHideLabelsSideBar)
 
 /** @type {import('vue').ComputedRef<boolean>} */
 const isAnyPromptOpen = computed(() => store.getters.isAnyPromptOpen)

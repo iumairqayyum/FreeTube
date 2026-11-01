@@ -11,7 +11,8 @@
   align-content: center;
   align-items: center;
   background-color: var(--card-bg-color);
-  box-shadow: 0 2px 1px 0 var(--primary-shadow-color);
+  box-shadow: none;
+  border-block-end: 1px solid var(--side-nav-hover-color);
   display: flex;
   block-size: 60px;
   inset-inline: 0;
@@ -265,11 +266,6 @@
 .appMenuPanel a:hover,
 .appMenuPanel a:focus-visible {
   background: var(--side-nav-hover-color);
-}
-
-.topNav {
-  box-shadow: none;
-  border-block-end: 1px solid var(--side-nav-hover-color);
 }
 
 @media only screen and (width >= 961px) {
