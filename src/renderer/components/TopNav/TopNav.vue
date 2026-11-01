@@ -11,8 +11,8 @@
       >
         <summary
           class="navButton"
-          aria-label="Navigation"
-          title="Navigation"
+          :aria-label="t('Navigation')"
+          :title="t('Navigation')"
         >
           <FontAwesomeIcon
             class="navIcon"
@@ -20,25 +20,46 @@
           />
         </summary>
         <div class="appMenuPanel">
-          <RouterLink to="/subscriptions" @click="closeAppMenu">
+          <RouterLink
+            to="/subscriptions"
+            @click="closeAppMenu"
+          >
             {{ t('Subscriptions.Subscriptions') }}
           </RouterLink>
-          <RouterLink to="/subscribedchannels" @click="closeAppMenu">
+          <RouterLink
+            to="/subscribedchannels"
+            @click="closeAppMenu"
+          >
             {{ t('Channels.Channels') }}
           </RouterLink>
-          <RouterLink to="/trending" @click="closeAppMenu">
+          <RouterLink
+            to="/trending"
+            @click="closeAppMenu"
+          >
             {{ t('Trending.Trending') }}
           </RouterLink>
-          <RouterLink to="/userplaylists" @click="closeAppMenu">
+          <RouterLink
+            to="/userplaylists"
+            @click="closeAppMenu"
+          >
             {{ t('Playlists') }}
           </RouterLink>
-          <RouterLink to="/history" @click="closeAppMenu">
+          <RouterLink
+            to="/history"
+            @click="closeAppMenu"
+          >
             {{ t('History.History') }}
           </RouterLink>
-          <RouterLink to="/settings" @click="closeAppMenu">
+          <RouterLink
+            to="/settings"
+            @click="closeAppMenu"
+          >
             {{ t('Settings.Settings') }}
           </RouterLink>
-          <RouterLink to="/about" @click="closeAppMenu">
+          <RouterLink
+            to="/about"
+            @click="closeAppMenu"
+          >
             {{ t('About.About') }}
           </RouterLink>
         </div>
@@ -354,6 +375,10 @@ watch(appTitle, (value) => {
 })
 
 const appMenu = useTemplateRef('appMenu')
+
+function toggleSideNav() {
+  if (appMenu.value) appMenu.value.open = !appMenu.value.open
+}
 
 function closeAppMenu() {
   if (appMenu.value) appMenu.value.open = false
