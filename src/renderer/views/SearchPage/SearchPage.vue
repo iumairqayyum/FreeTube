@@ -223,7 +223,8 @@ function cacheResults(payload) {
     data: shownResults.value,
     searchSettings: payload.searchSettings,
     nextPageRef: apiUsed.value === 'local' && nextPageRef.value
-      ? extractLocalCacheableSearchContinuation(nextPageRef.value) : null,
+      ? extractLocalCacheableSearchContinuation(nextPageRef.value)
+      : null,
     searchPage: searchPage.value,
     hasMore: hasMore.value,
     apiUsed: apiUsed.value,
