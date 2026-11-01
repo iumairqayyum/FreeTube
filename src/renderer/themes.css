@@ -205,6 +205,7 @@ it can be safely elided. This looks quite pleasant on this theme. */
 
 .black {
   color-scheme: dark;
+
   --primary-text-color: #f5f5f5;
   --secondary-text-color: #c4c4c4;
   --tertiary-text-color: #999;
