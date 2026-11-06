@@ -5,6 +5,13 @@
     <div class="switchColumnGrid">
       <div class="switchColumn">
         <FtToggleSwitch
+          :label="t('Settings.Player Settings.Auto Hide Watch Toolbar')"
+          :compact="true"
+          :default-value="autoHideWatchToolbar"
+          :tooltip="t('Settings.Player Settings.Auto Hide Watch Toolbar Tooltip')"
+          @change="updateAutoHideWatchToolbar"
+        />
+        <FtToggleSwitch
           :label="t('Settings.Player Settings.Prefer H264')"
           :compact="true"
           :default-value="preferH264"
@@ -473,6 +480,12 @@ const formatNames = computed(() => [
 
 /** @type {import('vue').ComputedRef<'dash' | 'audio' |' legacy'>} */
 const defaultVideoFormat = computed(() => store.getters.getDefaultVideoFormat)
+const autoHideWatchToolbar = computed(() => store.getters.getAutoHideWatchToolbar)
+
+function updateAutoHideWatchToolbar(value) {
+  store.dispatch('updateAutoHideWatchToolbar', value)
+}
+
 const preferH264 = computed(() => store.getters.getPreferH264)
 
 function updatePreferH264(value) {

@@ -1,7 +1,11 @@
 <template>
   <nav
     class="topNav"
-    :class="{ topNavBarColor: barColor }"
+    :class="{
+      topNavBarColor: barColor,
+      autoHideToolbar: isWatchPage && autoHideWatchToolbar,
+      toolbarPinned: isAnyPromptOpen
+    }"
   >
     <div class="side">
       <details
@@ -116,12 +120,13 @@
     </div>
     <div class="middle">
       <div
-        v-if="!hideSearchBar"
-        v-show="showSearchContainer"
+        v-if="!hideSearchBar || isWatchPage"
+        v-show="showSearchContainer || isWatchPage"
         ref="searchContainer"
         class="searchContainer"
       >
         <FtInput
+          v-if="!hideSearchBar"
           ref="searchInput"
           :placeholder="t('Search / Go to URL')"
           class="searchInput"
@@ -136,6 +141,7 @@
           @remove="removeSearchHistoryEntryInDbAndCache"
         />
         <button
+          v-if="!hideSearchBar"
           class="navFilterButton navButton"
           :class="{ filterChanged: searchFilterValueChanged }"
           :aria-label="t('Search Filters.Search Filters')"
@@ -145,6 +151,18 @@
           <FontAwesomeIcon
             class="navIcon"
             :icon="['fas', 'filter']"
+          />
+        </button>
+        <button
+          v-if="isWatchPage"
+          class="navRefreshButton navButton"
+          :aria-label="t('Reload video page')"
+          :title="t('Reload video page')"
+          @click="refreshVideoPage"
+        >
+          <FontAwesomeIcon
+            class="navIcon"
+            :icon="['fas', 'rotate-right']"
           />
         </button>
       </div>
@@ -173,6 +191,15 @@ import { getInvidiousSearchSuggestions } from '../../helpers/api/invidious'
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
+
+const isWatchPage = computed(() => route.path.startsWith('/watch/'))
+const autoHideWatchToolbar = computed(() => store.getters.getAutoHideWatchToolbar)
+const isAnyPromptOpen = computed(() => store.getters.isAnyPromptOpen)
+
+function refreshVideoPage() {
+  // Reload the current route, including any existing playlist/timestamp query.
+  window.location.reload()
+}
 
 const showSearchContainer = ref(true)
 /** @type {import('vue').ShallowRef<string[]>} */

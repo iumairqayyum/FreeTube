@@ -178,6 +178,7 @@ const state = {
   defaultViewingMode: 'default',
   defaultVideoFormat: 'dash',
   preferH264: false,
+  autoHideWatchToolbar: false,
   disableSmoothScrolling: false,
   disableChannelLinks: false,
   displayVideoPlayButton: false,

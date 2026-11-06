@@ -36,7 +36,7 @@ jobs:
       - name: Lint application
         run: pnpm run lint
       - name: Mark custom version
-        run: node -e "const fs = require('node:fs'); const p = require('./package.json'); p.version = '0.25.3-umair.2'; fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n')"
+        run: node -e "const fs = require('node:fs'); const p = require('./package.json'); p.version = '0.25.3-umair.3'; fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n')"
       - name: Build Intel app
         run: pnpm run build
       - name: Verify architecture and minimum macOS
@@ -63,7 +63,7 @@ jobs:
           PY
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: FreeTube-0.25.3-umair.2-mac-x64
+          name: FreeTube-0.25.3-umair.3-mac-x64
           path: |
             build/*.dmg
             build/*.zip

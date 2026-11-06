@@ -1,3 +1,4 @@
+Reload video page: Reload video page
 Navigation: Navigation
 # Put the name of your locale in the same language
 Locale Name: English (US)
@@ -441,6 +442,8 @@ Settings:
     Secondary Color Theme: Secondary Color Theme
         #* Main Color Theme
   Player Settings:
+    Auto Hide Watch Toolbar: Auto-hide toolbar while watching
+    Auto Hide Watch Toolbar Tooltip: On desktop mouse devices, hide the toolbar while watching. Move the pointer to the top edge or focus a toolbar control to reveal it. Menus stay visible while open.
     Prefer H264: Prefer H.264 video (Intel Macs)
     Prefer H264 Tooltip: Prefer H.264 for DASH playback when available. Reopen the video after changing this setting. Available quality may be lower; other codecs remain a fallback.
     Player Settings: Player
