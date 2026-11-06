@@ -16,12 +16,26 @@
         {{ t("Search Filters.Search Results") }}
       </h2>
       <div class="searchToolbar">
+        <FtSelect
+          :placeholder="t('Search.Result order')"
+          :value="resultOrder"
+          :select-names="[t('Search.Original order'), t('Search.Newest loaded results')]"
+          :select-values="['original', 'newest']"
+          :icon="['fas', 'search']"
+          @change="resultOrder = $event"
+        />
         <FtButton
           :label="t('Search.Refresh results')"
           :icon="['fas', 'rotate']"
           @click="refreshSearch"
         />
       </div>
+      <p
+        v-if="resultOrder === 'newest'"
+        class="sortNotice"
+      >
+        {{ t('Search.Local sort notice') }}
+      </p>
       <div
         v-if="errorMessage"
         class="searchStatus searchStatusError"
@@ -63,7 +77,7 @@
         <p>{{ t('Search.Loading more') }}</p>
       </div>
       <FtElementList
-        :data="shownResults"
+        :data="orderedResults"
       />
       <FtAutoLoadNextPageWrapper
         v-if="hasMore && !isFetchingMore && !errorMessage"
@@ -94,6 +108,7 @@ import FtLoader from '../../components/FtLoader/FtLoader.vue'
 import FtCard from '../../components/ft-card/ft-card.vue'
 import FtElementList from '../../components/FtElementList/FtElementList.vue'
 import FtAutoLoadNextPageWrapper from '../../components/FtAutoLoadNextPageWrapper.vue'
+import FtSelect from '../../components/FtSelect/FtSelect.vue'
 import FtButton from '../../components/FtButton/FtButton.vue'
 
 import store from '../../store'
@@ -127,6 +142,20 @@ const searchPage = ref(1)
 /** @type {import('vue').ShallowRef<import('youtubei.js').YT.Search | string | null>} */
 const nextPageRef = shallowRef(null)
 const shownResults = shallowRef([])
+const resultOrder = ref('original')
+const orderedResults = computed(() => {
+  if (resultOrder.value !== 'newest') return shownResults.value
+  return [...shownResults.value].sort((a, b) => publishedTimestamp(b) - publishedTimestamp(a))
+})
+
+function publishedTimestamp(item) {
+  // Local dates are milliseconds; Invidious dates are Unix seconds.
+  // Live/upcoming timestamps are not upload dates.
+  if (item.type !== 'video' || item.liveNow || item.isUpcoming) return 0
+  const published = item.published
+  if (typeof published !== 'number' || !Number.isFinite(published) || published <= 0) return 0
+  return apiUsed.value === 'invidious' ? published * 1000 : published
+}
 
 const query = ref('')
 const processedQuery = computed(() => query.value.trim())

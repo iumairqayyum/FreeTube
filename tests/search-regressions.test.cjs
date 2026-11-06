@@ -54,7 +54,7 @@ function harness({ local = async () => result('first'), more = async () => resul
     SEARCH_CHAR_LIMIT: 100, process: { env: { SUPPORTS_LOCAL_API: true } },
     Date, Set, console: { error() {}, warn() {} }
   }
-  const api = vm.runInNewContext(`${script}\n;({ checkSearchCache, nextPage, refreshSearch, retrySearch, shownResults, nextPageRef, hasMore, isLoading, isFetchingMore, errorMessage, searchPage })`, context)
+  const api = vm.runInNewContext(`${script}\n;({ checkSearchCache, nextPage, refreshSearch, retrySearch, resultOrder, orderedResults, shownResults, nextPageRef, hasMore, isLoading, isFetchingMore, errorMessage, searchPage })`, context)
   return { ...api, calls, cache, getters, unmount: () => unmount() }
 }
 const search = (h, query) => h.checkSearchCache({ query, searchSettings: { features: [] } })
@@ -216,4 +216,43 @@ test('query and filters travel together through asynchronous requests', async ()
   assert.equal(calls[1].q, 'news')
   assert.deepEqual(calls[1].filters, filters)
   assert.deepEqual(h.cache[1].searchSettings, filters)
+})
+
+test('newest local results sort without mutating original or cached order', async () => {
+  const h = harness({ local: async () => ({ results: [
+    { ...video('old'), published: 1700000000000 },
+    { ...video('unknown') },
+    { type: 'channel', id: 'channel', published: 1900000000000 },
+    { ...video('new'), published: 1800000000000 },
+    { ...video('live'), published: 1900000000000, liveNow: true },
+    { ...video('invalid'), published: NaN }
+  ], continuationData: null }) })
+  await tick()
+  h.resultOrder.value = 'newest'
+  assert.deepEqual(Array.from(h.orderedResults.value, v => v.videoId ?? v.id), ['new', 'old', 'unknown', 'channel', 'live', 'invalid'])
+  assert.equal(h.cache[0].data[0].videoId, 'old')
+  h.resultOrder.value = 'original'
+  assert.equal(h.orderedResults.value[0].videoId, 'old')
+})
+
+test('new pages join newest ordering and equal dates retain original order', async () => {
+  const h = harness({ local: async () => ({ results: [{ ...video('old'), published: 1000 }], continuationData: 'token' }),
+    more: async () => ({ results: [{ ...video('new'), published: 2000 }, { ...video('tie'), published: 2000 }], continuationData: null }) })
+  await tick()
+  h.resultOrder.value = 'newest'
+  await h.nextPage()
+  assert.deepEqual(Array.from(h.orderedResults.value, v => v.videoId), ['new', 'tie', 'old'])
+  assert.equal(h.hasMore.value, false)
+})
+
+test('Invidious seconds sort and upcoming or missing dates stay last', async () => {
+  const h = harness({ backend: 'invidious', iv: async () => [
+    { ...video('old'), published: 1700000000 },
+    { ...video('upcoming'), published: 1900000000, isUpcoming: true },
+    { ...video('new'), published: 1800000000 },
+    video('unknown')
+  ] })
+  await tick()
+  h.resultOrder.value = 'newest'
+  assert.deepEqual(Array.from(h.orderedResults.value, v => v.videoId), ['new', 'old', 'upcoming', 'unknown'])
 })

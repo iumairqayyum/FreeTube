@@ -75,6 +75,10 @@ Search Listing:
     Closed Captions: Closed Captions
   # In Filter Button
 Search:
+  Result order: Result order
+  Original order: Original order
+  Newest loaded results: Newest first — loaded results
+  Local sort notice: Only loaded results are sorted. Dates may be approximate. Undated, live and upcoming items appear last. Fetch more results to include more videos.
   Refresh results: Refresh results
   Retry: Retry
   No matching results: No matching results. Try clearing your search filters or refreshing.
