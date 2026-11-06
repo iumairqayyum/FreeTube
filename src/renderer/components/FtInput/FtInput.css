@@ -101,12 +101,12 @@ body[dir='rtl'] .ft-input-component.search.showClearTextButton:focus-within .inp
   outline: none;
   inline-size: 100%;
   padding: 1rem;
-  border: 0;
+  border: 1px solid var(--side-nav-hover-color);
   margin-block-end: 10px;
   font-size: 16px;
   block-size: 45px;
   color: var(--secondary-text-color);
-  border-radius: 5px;
+  border-radius: 12px;
   background-color: var(--search-bar-color);
 }
 

@@ -204,20 +204,22 @@ it can be safely elided. This looks quite pleasant on this theme. */
 }
 
 .black {
-  --primary-text-color: #eee;
-  --secondary-text-color: #ddd;
-  --tertiary-text-color: #eee;
-  --title-color: #eee;
+  color-scheme: dark;
+
+  --primary-text-color: #f5f5f5;
+  --secondary-text-color: #c4c4c4;
+  --tertiary-text-color: #999;
+  --title-color: #f5f5f5;
   --bg-color: #000;
-  --favorite-icon-color: #0f0;
-  --card-bg-color: #000;
-  --secondary-card-bg-color: rgb(0 0 0 / 75%);
-  --scrollbar-color: #515151;
-  --scrollbar-color-hover: #424242;
-  --side-nav-color: #000;
-  --side-nav-hover-color: #212121;
+  --favorite-icon-color: #ff454d;
+  --card-bg-color: #111;
+  --secondary-card-bg-color: #181818;
+  --scrollbar-color: #333;
+  --scrollbar-color-hover: #555;
+  --side-nav-color: #080808;
+  --side-nav-hover-color: #222;
   --side-nav-active-color: #303030;
-  --search-bar-color: #262626;
+  --search-bar-color: #111;
 }
 
 .nordic {

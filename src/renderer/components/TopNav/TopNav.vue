@@ -1,20 +1,73 @@
 <template>
   <nav
     class="topNav"
-    :class="{ topNavBarColor: barColor }"
+    :class="{
+      topNavBarColor: barColor,
+      autoHideToolbar: isWatchPage && autoHideWatchToolbar,
+      toolbarPinned: isAnyPromptOpen
+    }"
   >
     <div class="side">
-      <button
-        class="menuButton navButton"
-        :aria-label="expandCollapseSideBarLabel"
-        :title="expandCollapseSideBarLabel"
-        @click="toggleSideNav"
+      <details
+        ref="appMenu"
+        class="appMenu"
+        @keydown.esc="closeAppMenu"
       >
-        <FontAwesomeIcon
-          class="navIcon"
-          :icon="['fas', 'bars']"
-        />
-      </button>
+        <summary
+          class="navButton"
+          :aria-label="t('Navigation')"
+          :title="t('Navigation')"
+        >
+          <FontAwesomeIcon
+            class="navIcon"
+            :icon="['fas', 'bars']"
+          />
+        </summary>
+        <div class="appMenuPanel">
+          <RouterLink
+            to="/subscriptions"
+            @click="closeAppMenu"
+          >
+            {{ t('Subscriptions.Subscriptions') }}
+          </RouterLink>
+          <RouterLink
+            to="/subscribedchannels"
+            @click="closeAppMenu"
+          >
+            {{ t('Channels.Channels') }}
+          </RouterLink>
+          <RouterLink
+            to="/trending"
+            @click="closeAppMenu"
+          >
+            {{ t('Trending.Trending') }}
+          </RouterLink>
+          <RouterLink
+            to="/userplaylists"
+            @click="closeAppMenu"
+          >
+            {{ t('Playlists') }}
+          </RouterLink>
+          <RouterLink
+            to="/history"
+            @click="closeAppMenu"
+          >
+            {{ t('History.History') }}
+          </RouterLink>
+          <RouterLink
+            to="/settings"
+            @click="closeAppMenu"
+          >
+            {{ t('Settings.Settings') }}
+          </RouterLink>
+          <RouterLink
+            to="/about"
+            @click="closeAppMenu"
+          >
+            {{ t('About.About') }}
+          </RouterLink>
+        </div>
+      </details>
       <FtIconButton
         class="navIconButton"
         :disabled="isArrowBackwardDisabled"
@@ -64,29 +117,16 @@
           :icon="['fas', 'clone']"
         />
       </button>
-      <RouterLink
-        v-if="!hideHeaderLogo"
-        class="logo"
-        dir="ltr"
-        :title="headerLogoTitle"
-        :to="landingPage"
-      >
-        <div
-          class="logoIcon"
-        />
-        <div
-          class="logoText"
-        />
-      </RouterLink>
     </div>
     <div class="middle">
       <div
-        v-if="!hideSearchBar"
-        v-show="showSearchContainer"
+        v-if="!hideSearchBar || isWatchPage"
+        v-show="showSearchContainer || isWatchPage"
         ref="searchContainer"
         class="searchContainer"
       >
         <FtInput
+          v-if="!hideSearchBar"
           ref="searchInput"
           :placeholder="t('Search / Go to URL')"
           class="searchInput"
@@ -101,6 +141,7 @@
           @remove="removeSearchHistoryEntryInDbAndCache"
         />
         <button
+          v-if="!hideSearchBar"
           class="navFilterButton navButton"
           :class="{ filterChanged: searchFilterValueChanged }"
           :aria-label="t('Search Filters.Search Filters')"
@@ -110,6 +151,18 @@
           <FontAwesomeIcon
             class="navIcon"
             :icon="['fas', 'filter']"
+          />
+        </button>
+        <button
+          v-if="isWatchPage"
+          class="navRefreshButton navButton"
+          :aria-label="t('Reload video page')"
+          :title="t('Reload video page')"
+          @click="refreshVideoPage"
+        >
+          <FontAwesomeIcon
+            class="navIcon"
+            :icon="['fas', 'rotate-right']"
           />
         </button>
       </div>
@@ -132,13 +185,21 @@ import store from '../../store/index'
 
 import { KeyboardShortcuts, MOBILE_WIDTH_THRESHOLD, SEARCH_RESULTS_DISPLAY_LIMIT } from '../../../constants'
 import { debounce, localizeAndAddKeyboardShortcutToActionTitle, openInternalPath } from '../../helpers/utils'
-import { translateWindowTitle } from '../../helpers/strings'
 import { clearLocalSearchSuggestionsSession, getLocalSearchSuggestions } from '../../helpers/api/local'
 import { getInvidiousSearchSuggestions } from '../../helpers/api/invidious'
 
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
+
+const isWatchPage = computed(() => route.path.startsWith('/watch/'))
+const autoHideWatchToolbar = computed(() => store.getters.getAutoHideWatchToolbar)
+const isAnyPromptOpen = computed(() => store.getters.isAnyPromptOpen)
+
+function refreshVideoPage() {
+  // Reload the current route, including any existing playlist/timestamp query.
+  window.location.reload()
+}
 
 const showSearchContainer = ref(true)
 /** @type {import('vue').ShallowRef<string[]>} */
@@ -150,26 +211,11 @@ const lastSuggestionQuery = ref('')
 /** @type {import('vue').ComputedRef<boolean>} */
 const hideSearchBar = computed(() => store.getters.getHideSearchBar)
 /** @type {import('vue').ComputedRef<boolean>} */
-const hideHeaderLogo = computed(() => store.getters.getHideHeaderLogo)
-/** @type {import('vue').ComputedRef<boolean>} */
 const enableSearchSuggestions = computed(() => store.getters.getEnableSearchSuggestions)
 /** @type {import('vue').ComputedRef<string>} */
 const barColor = computed(() => store.getters.getBarColor)
 
-const expandCollapseSideBarLabel = computed(() => {
-  return store.getters.getIsSideNavOpen ? t('Compact side navigation') : t('Expand side navigation')
-})
-
 const landingPage = computed(() => '/' + store.getters.getLandingPage)
-
-const headerLogoTitle = computed(() => {
-  return t('Go to page', {
-    page: translateWindowTitle(
-      router.getRoutes()
-        .find((route) => route.path === landingPage.value)
-        .meta.title)
-  })
-})
 
 const navigationHistoryAddendum = computed(() => {
   return navigationHistoryDropdownOptions.value.length === 0
@@ -355,9 +401,17 @@ watch(appTitle, (value) => {
   })
 })
 
+const appMenu = useTemplateRef('appMenu')
+
 function toggleSideNav() {
-  store.commit('toggleSideNav')
+  if (appMenu.value) appMenu.value.open = !appMenu.value.open
 }
+
+function closeAppMenu() {
+  if (appMenu.value) appMenu.value.open = false
+}
+
+watch(() => route.fullPath, closeAppMenu)
 
 /** @type {import('vue').ComputedRef<boolean>} */
 const searchFilterValueChanged = computed(() => store.getters.getSearchFilterValueChanged)

@@ -601,6 +601,10 @@ export default defineComponent({
      * @returns {shaka.extern.PlayerConfiguration}
      */
     function getPlayerConfig(format, useAutoQuality = false) {
+      let preferredVideoCodecs = typeof props.vrProjection === 'string' ? ['av01', 'avc1'] : []
+      if (format === 'dash' && store.getters.getPreferH264) {
+        preferredVideoCodecs = ['avc1']
+      }
       return {
         // YouTube uses these values and they seem to work well in FreeTube too,
         // so we might as well use them
@@ -634,7 +638,7 @@ export default defineComponent({
         // Electron doesn't like YouTube's vp9 VR video streams and throws:
         // "CHUNK_DEMUXER_ERROR_APPEND_FAILED: Projection element is incomplete; ProjectionPoseYaw required."
         // So use the AV1 and h264 codecs instead which it doesn't reject
-        preferredVideoCodecs: typeof props.vrProjection === 'string' ? ['av01', 'avc1'] : []
+        preferredVideoCodecs
       }
     }
 

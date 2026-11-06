@@ -4,15 +4,10 @@
     class="app"
     :class="{
       hideOutlines: outlinesHidden,
-      isLocaleRightToLeft: isLocaleRightToLeft,
-      isSideNavOpen: isSideNavOpen,
-      hideLabelsSideBar: hideLabelsSideBar && !isSideNavOpen
+      isLocaleRightToLeft: isLocaleRightToLeft
     }"
   >
     <TopNav
-      :inert="isAnyPromptOpen"
-    />
-    <SideNav
       :inert="isAnyPromptOpen"
     />
     <FtFlexBox
@@ -112,7 +107,6 @@ import { useRoute, useRouter } from 'vue-router'
 
 import FtFlexBox from './components/ft-flex-box/ft-flex-box.vue'
 import TopNav from './components/TopNav/TopNav.vue'
-import SideNav from './components/SideNav/SideNav.vue'
 import FtNotificationBanner from './components/FtNotificationBanner/FtNotificationBanner.vue'
 import FtPrompt from './components/FtPrompt/FtPrompt.vue'
 import FtButton from './components/FtButton/FtButton.vue'
@@ -134,12 +128,6 @@ import { loadLocale } from './i18n/index'
 const route = useRoute()
 const router = useRouter()
 const { locale, t } = useI18n()
-
-/** @type {import('vue').ComputedRef<boolean>} */
-const isSideNavOpen = computed(() => store.getters.getIsSideNavOpen)
-
-/** @type {import('vue').ComputedRef<boolean>} */
-const hideLabelsSideBar = computed(() => store.getters.getHideLabelsSideBar)
 
 /** @type {import('vue').ComputedRef<boolean>} */
 const isAnyPromptOpen = computed(() => store.getters.isAnyPromptOpen)
@@ -169,6 +157,14 @@ const dataReady = ref(false)
 onMounted(async () => {
   await store.dispatch('grabUserSettings')
 
+  // Apply the approved appearance once; later user theme choices remain editable.
+  if (store.getters.getCustomBlackUiVersion !== 1) {
+    await store.dispatch('updateBaseTheme', 'black')
+    await store.dispatch('updateMainColor', 'Red')
+    await store.dispatch('updateSecColor', 'Red')
+    await store.dispatch('updateBarColor', false)
+    await store.dispatch('updateCustomBlackUiVersion', 1)
+  }
   updateTheme()
 
   await store.dispatch('fetchInvidiousInstancesFromFile')

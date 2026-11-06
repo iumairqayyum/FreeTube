@@ -1,0 +1,71 @@
+name: Custom Intel Mac build
+
+on:
+  push:
+    branches: [umair/search-h264]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: custom-mac-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.repository == 'iumairqayyum/FreeTube'
+    runs-on: macos-15-intel
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271
+        with:
+          version: 10
+          cache: false
+      - name: Install locked dependencies
+        run: pnpm run ci
+      - name: Search and codec regression tests
+        run: node --test tests/search-regressions.test.cjs
+      - name: Lint application
+        run: pnpm run lint
+      - name: Mark custom version
+        run: node -e "const fs = require('node:fs'); const p = require('./package.json'); p.version = '0.25.3-umair.4'; fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n')"
+      - name: Build Intel app
+        run: pnpm run build
+      - name: Verify architecture and minimum macOS
+        run: |
+          python3 - <<'PY'
+          import pathlib, plistlib, subprocess
+          apps = list(pathlib.Path('build').rglob('FreeTube.app'))
+          assert apps, 'Packaged FreeTube.app missing'
+          app = apps[0]
+          with (app / 'Contents/Info.plist').open('rb') as handle:
+              info = plistlib.load(handle)
+          executable = app / 'Contents/MacOS' / info['CFBundleExecutable']
+          arch = subprocess.check_output(['lipo', '-archs', str(executable)], text=True).strip()
+          assert arch == 'x86_64', arch
+          framework = app / 'Contents/Frameworks/Electron Framework.framework/Resources/Info.plist'
+          for plist in [app / 'Contents/Info.plist', framework]:
+              with plist.open('rb') as handle:
+                  data = plistlib.load(handle)
+              minimum = data.get('LSMinimumSystemVersion')
+              if minimum:
+                  parts = tuple(int(part) for part in minimum.split('.'))
+                  assert parts < (13,), f'{plist}: requires macOS {minimum}'
+          print('Verified x86_64 app; declared macOS minimum compatible with Monterey')
+          PY
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: FreeTube-0.25.3-umair.4-mac-x64
+          path: |
+            build/*.dmg
+            build/*.zip
+          if-no-files-found: error
+          retention-days: 14
