@@ -294,8 +294,8 @@
     &:hover,
     &:focus-within,
     &.toolbarPinned,
-    &:has(details[open]),
-    &:has([aria-expanded='true']) {
+    &:has([aria-expanded='true']),
+    &:has(details[open]) {
       transform: translateY(0);
       transition-delay: 0s;
     }
